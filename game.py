@@ -5,7 +5,7 @@ import math
 import random
 import time
 
-grid_size = 10000000000000000000000000000
+grid_size = 1000
 cell_size = 0.4
 player_x = grid_size / 4
 player_z = grid_size / 2
@@ -25,11 +25,40 @@ cheat_mode = False
 cheat_index = 0
 cooldown = 0
 
-def draw_text(x, y, text, font=GLUT_BITMAP_TIMES_ROMAN_24):
-    return
+def draw_text(x, y, text, font=GLUT_BITMAP_TIMES_ROMAN_20):
+    glColor3f(1, 1, 1)
+    glMatrixMode(GL_PROJECTION)
+    glPushMatrix()
+    glLoadIdentity()
+    gluOrtho2D(0, 1000, 0, 800)
+    glMatrixMode(GL_MODELVIEW)
+    glPushMatrix()
+    glLoadIdentity()
+    glRasterPos2f(x, y)
+    for ch in text:
+        glutBitmapCharacter(font, ord(ch))
+    glPopMatrix()
+    glMatrixMode(GL_PROJECTION)
+    glPopMatrix()
+    glMatrixMode(GL_MODELVIEW)
 
 def draw_ground():
-    return
+    subdivisions = 4
+    mini = cell_size / subdivisions
+    for i in range(grid_size):
+        for j in range(grid_size):
+            for x in range(subdivisions):
+                for z in range(subdivisions):
+                    shade = 0.4 + 0.05 * ((i + j + x + z) % 3)
+                    glColor3f(0.1, shade, 0.1)
+                    base_x = i * cell_size + x * mini
+                    base_z = j * cell_size + z * mini
+                    glBegin(GL_QUADS)
+                    glVertex3f(base_x, 0, base_z)
+                    glVertex3f(base_x + mini, 0, base_z)
+                    glVertex3f(base_x + mini, 0, base_z + mini)
+                    glVertex3f(base_x, 0, base_z + mini)
+                    glEnd()
 
 def draw_walls():
     return
