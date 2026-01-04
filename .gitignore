@@ -1,6 +1,6 @@
 opengl_env/
+shadow.py
 dash.py
 rand.py
 struc.py
 asfia.py
-shadow.py
