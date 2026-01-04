@@ -5,19 +5,13 @@ import math
 import random
 import time
 
-colors = {
-    "white":  (1.0, 1.0, 1.0),
-    "red":    (1.0, 0.0, 0.0),
-    "green":  (0.0, 1.0, 0.0),
-    "blue":   (0.0, 0.0, 1.0),
-    "yellow": (1.0, 1.0, 0.0),
-    "orange": (1.0, 0.5, 0.0)
-}
+colors = {"white": (1.0, 1.0, 1.0), "red": (1.0, 0.0, 0.0), "green": (0.0, 1.0, 0.0), "blue": (0.0, 0.0, 1.0), "yellow": (1.0, 1.0, 0.0), "orange": (1.0, 0.5, 0.0)}
 win_width = 1000
 win_height = 800
 grid_length = 2000
-boundary_min = 100 - grid_length
-boundary_max = grid_length - 100
+boundary_min = -grid_length
+boundary_max = grid_length
+wall_thickness = 60.0
 last_time = time.time()
 camera_angle = 0.0
 cam_up_down = -25.0
@@ -135,7 +129,6 @@ def draw_menu():
     draw_text(10, 60, "Controls: WASD move | Arrow keys rotate/tilt | P pause | L-click flashlight | R-click FPV toggle")
     draw_text(10, 35, "X run | C god | V vision | T shadows | R reset | H help")
 
-
 def draw_ground():
     glBegin(GL_QUADS)
     glColor3f(0.08, 0.09, 0.10)
@@ -172,29 +165,30 @@ def draw_ground():
     glEnd()
 
 def draw_walls():
-    height = 100.0
+    wall_height = 120.0
+    thickness = wall_thickness
+    span = boundary_max - boundary_min
     glColor3f(0.3, 0.3, 0.3)
-    glBegin(GL_QUADS)
-    glVertex3f(boundary_min, boundary_min, 0)
-    glVertex3f(boundary_min, boundary_max, 0)
-    glVertex3f(boundary_min, boundary_max, height)
-    glVertex3f(boundary_min, boundary_min, height)
-
-    glVertex3f(boundary_max, boundary_min, 0)
-    glVertex3f(boundary_max, boundary_max, 0)
-    glVertex3f(boundary_max, boundary_max, height)
-    glVertex3f(boundary_max, boundary_min, height)
-
-    glVertex3f(boundary_min, boundary_min, 0)
-    glVertex3f(boundary_max, boundary_min, 0)
-    glVertex3f(boundary_max, boundary_min, height)
-    glVertex3f(boundary_min, boundary_min, height)
-
-    glVertex3f(boundary_min, boundary_max, 0)
-    glVertex3f(boundary_max, boundary_max, 0)
-    glVertex3f(boundary_max, boundary_max, height)
-    glVertex3f(boundary_min, boundary_max, height)
-    glEnd()
+    glPushMatrix()
+    glTranslatef(boundary_min + thickness * 0.5, 0.0, wall_height * 0.5) # Left wall
+    glScalef(thickness, span, wall_height)
+    glutSolidCube(1.0)
+    glPopMatrix()
+    glPushMatrix()
+    glTranslatef(boundary_max - thickness * 0.5, 0.0, wall_height * 0.5)  # Right wall
+    glScalef(thickness, span, wall_height)
+    glutSolidCube(1.0)
+    glPopMatrix()
+    glPushMatrix()
+    glTranslatef(0.0, boundary_min + thickness * 0.5, wall_height * 0.5)  # Bottom wall
+    glScalef(span, thickness, wall_height)
+    glutSolidCube(1.0)
+    glPopMatrix()
+    glPushMatrix()
+    glTranslatef(0.0, boundary_max - thickness * 0.5, wall_height * 0.5)  # Top wall
+    glScalef(span, thickness, wall_height)
+    glutSolidCube(1.0)
+    glPopMatrix()
 
 def draw_shadow(x, y, r):
     glColor3f(0.02, 0.02, 0.02)
@@ -233,7 +227,7 @@ def in_flash(pos):
 def draw_player():
     if view == "first_person":
         return
-    if flash_on == True:
+    if flash_on:
         base = 0.72
     else:
         base = 0.5
@@ -243,18 +237,15 @@ def draw_player():
     glPushMatrix()
     glTranslatef(player_xyz[0], player_xyz[1], player_radius)
     glRotatef(player_yaw - 90.0, 0, 0, 1)
-
     glColor3f(player_color[0]*base, player_color[1]*base, player_color[2]*base) # body
     glPushMatrix()
     glScalef(player_radius * 0.6, player_radius * 0.6, player_radius * 1.6)
     glutSolidCube(1.0)
     glPopMatrix()
-
     glPushMatrix()                                                  # Head
     glTranslatef(0, 0, player_radius * 1.2)
     glutSolidSphere(player_radius * 0.6, 16, 16)
     glPopMatrix()
-
     glPushMatrix()                                                  # Flashlight
     glTranslatef(0, 0, player_radius * 1.9) 
     glRotatef(-90, 1, 0, 0)  
@@ -267,19 +258,16 @@ def draw_player():
     glColor3f(1.0, 1.0, 0.6)
     glutSolidSphere(player_radius * 0.18, 10, 10)
     glPopMatrix()
-
     glPushMatrix()                                                   # Arms
     glTranslatef(player_radius * 0.65, 0, player_radius * 0.45)
     glScalef(player_radius * 0.3, player_radius * 0.3, player_radius * 1.1)
     glutSolidCube(1.0)
     glPopMatrix()
-
     glPushMatrix()
     glTranslatef(-player_radius * 0.65, 0, player_radius * 0.45)
     glScalef(player_radius * 0.3, player_radius * 0.3, player_radius * 1.1)
     glutSolidCube(1.0)
     glPopMatrix()
-
     glPushMatrix()                                                   # Legs
     glTranslatef(player_radius * 0.28, 0, -player_radius * 0.35)
     glScalef(player_radius * 0.35, player_radius * 0.35, player_radius * 1.25)
@@ -347,6 +335,8 @@ def draw_items():
 
 def draw_enemies():
     for enemy in enemies:
+        if shadows:
+            draw_shadow(enemy["pos"][0], enemy["pos"][1], enemy["r"] * shadow_len)
         visible = in_flash(enemy["pos"])
         t = time.time()
         base_col = (0.32, 0.78, 0.46)  
@@ -363,17 +353,14 @@ def draw_enemies():
 
         glPushMatrix()
         glTranslatef(enemy["pos"][0], enemy["pos"][1], enemy["r"])
-
         glPushMatrix()                                                  # Torso
         glScalef(enemy["r"] * 0.7, enemy["r"] * 0.7, enemy["r"] * 1.8)
         glutSolidCube(1.0)
         glPopMatrix()
-
         glPushMatrix()                                                  # Head
         glTranslatef(0, 0, enemy["r"] * 1.2)
         glutSolidSphere(enemy["r"] * 0.7, 14, 14)
         glPopMatrix()
-
         glPushMatrix()                                                  # Arms
         glTranslatef(enemy["r"] * 0.8, 0, enemy["r"] * 0.45)
         glRotatef(20, 0, 1, 0)
@@ -386,7 +373,6 @@ def draw_enemies():
         glScalef(enemy["r"] * 0.35, enemy["r"] * 0.35, enemy["r"] * 1.35)
         glutSolidCube(1.0)
         glPopMatrix()
-
         glPushMatrix()                                                 # Legs
         glTranslatef(enemy["r"] * 0.38, 0, -enemy["r"] * 0.45)
         glScalef(enemy["r"] * 0.4, enemy["r"] * 0.4, enemy["r"] * 1.4)
@@ -425,7 +411,10 @@ def setup_camera():
         eye_x = player_xyz[0] - cam_dir_x * 200.0
         eye_y = player_xyz[1] - cam_dir_y * 200.0
         eye_z = 100.0 + cam_up_down
-
+        playable_min = boundary_min + wall_thickness
+        playable_max = boundary_max - wall_thickness
+        eye_x = max(playable_min + 1.0, min(playable_max - 1.0, eye_x))
+        eye_y = max(playable_min + 1.0, min(playable_max - 1.0, eye_y))
         camera_eye = [eye_x, eye_y, eye_z]
         gluLookAt(eye_x, eye_y, eye_z,
                   player_xyz[0], player_xyz[1], player_xyz[2],
@@ -436,8 +425,8 @@ def spawn_enemies():
     enemies = []
     for _ in range(enemy_count):
         while True:
-            enemy_x = random.randint(boundary_min, boundary_max)
-            enemy_y = random.randint(boundary_min, boundary_max)
+            enemy_x = random.randint(int(boundary_min + wall_thickness), int(boundary_max - wall_thickness))
+            enemy_y = random.randint(int(boundary_min + wall_thickness), int(boundary_max - wall_thickness))
             dist = math.sqrt((enemy_x - player_xyz[0])**2 + (enemy_y - player_xyz[1])**2)
             if dist > 200:
                 break
@@ -459,8 +448,8 @@ def spawn_items():
         "speed_boost"
     ]
     for _ in range(item_count):
-        item_x = random.randint(boundary_min, boundary_max)
-        item_y = random.randint(boundary_min, boundary_max)
+        item_x = random.randint(int(boundary_min + wall_thickness), int(boundary_max - wall_thickness))
+        item_y = random.randint(int(boundary_min + wall_thickness), int(boundary_max - wall_thickness))
         kind = random.choice(item_types)
         item_pickups.append({
             "pos": [float(item_x), float(item_y), 0.0],
@@ -474,8 +463,8 @@ def spawn_collectibles():
     collectibles = []
     for _ in range(collectible_count):
         while True:
-            x = random.randint(boundary_min, boundary_max)
-            y = random.randint(boundary_min, boundary_max)
+            x = random.randint(int(boundary_min + wall_thickness), int(boundary_max - wall_thickness))
+            y = random.randint(int(boundary_min + wall_thickness), int(boundary_max - wall_thickness))
             if math.hypot(x - player_xyz[0], y - player_xyz[1]) > 150:
                 break
         collectibles.append({
@@ -490,8 +479,8 @@ def spawn_structures(count=30):
         w = random.randint(40, 220)
         d = random.randint(40, 220)
         h = random.randint(40, 240)
-        sx = random.randint(boundary_min + w, boundary_max - w)
-        sy = random.randint(boundary_min + d, boundary_max - d)
+        sx = random.randint(int(boundary_min + wall_thickness + w), int(boundary_max - wall_thickness - w))
+        sy = random.randint(int(boundary_min + wall_thickness + d), int(boundary_max - wall_thickness - d))
         if math.hypot(sx - player_xyz[0], sy - player_xyz[1]) < 200:
             continue
         structures.append({
@@ -546,7 +535,6 @@ def effects():
         flash_range = base_range * 1.5
     else:
         flash_range = base_range
-
     if t < speed_boost:
         player_speed = 10.0
         run_speed = 24.0
@@ -557,11 +545,13 @@ def effects():
 def update_enemies(dt):
     global lives, last_damage
     t = time.time()
-    slow_factor = 0.4 if t < slow_enemies else 1.0
+    if t < slow_enemies:
+        slow_factor = 0.4
+    else:
+        slow_factor = 1.0
     for enemy in enemies:
         ex, ey = enemy["pos"][0], enemy["pos"][1]
         px, py = player_xyz[0], player_xyz[1]
-
         dx = ex - px
         dy = ey - py
         visible = in_flash(enemy["pos"])
@@ -592,14 +582,16 @@ def update_enemies(dt):
             if not collided:
                 enemy["pos"][0] = new_x
                 enemy["pos"][1] = new_y
-        if enemy["pos"][0] < boundary_min:
-            enemy["pos"][0] = boundary_min
-        elif enemy["pos"][0] > boundary_max:
-            enemy["pos"][0] = boundary_max
-        if enemy["pos"][1] < boundary_min:
-            enemy["pos"][1] = boundary_min
-        elif enemy["pos"][1] > boundary_max:
-            enemy["pos"][1] = boundary_max
+        playable_min = boundary_min + wall_thickness
+        playable_max = boundary_max - wall_thickness
+        if enemy["pos"][0] < playable_min:
+            enemy["pos"][0] = playable_min
+        elif enemy["pos"][0] > playable_max:
+            enemy["pos"][0] = playable_max
+        if enemy["pos"][1] < playable_min:
+            enemy["pos"][1] = playable_min
+        elif enemy["pos"][1] > playable_max:
+            enemy["pos"][1] = playable_max
         dx2 = enemy["pos"][0] - px
         dy2 = enemy["pos"][1] - py
         dist_sq = dx2*dx2 + dy2*dy2
@@ -618,11 +610,9 @@ def check_item_pickups():
         dx = item["pos"][0] - px
         dy = item["pos"][1] - py
         dist_sq = dx*dx + dy*dy
-
         if dist_sq <= (item["r"] + player_radius) ** 2:
             item["collected"] = True
             score += 5
-
             item_type = item["type"]
             if item_type == "life_refill":
                 lives = min(10, lives + 1)
@@ -645,7 +635,9 @@ def check_item_pickups():
             score += 5
 
 def can_move_to(x, y, radius):
-    if x < boundary_min or x > boundary_max or y < boundary_min or y > boundary_max:
+    playable_min = boundary_min + wall_thickness
+    playable_max = boundary_max - wall_thickness
+    if x < playable_min or x > playable_max or y < playable_min or y > playable_max:
         return False
     for s in structures:
         sx, sy = s["pos"]
@@ -737,7 +729,10 @@ def keyboardListener(key, x, y):
         return
     if game_over or paused:
         return
-    speed = run_speed if running else player_speed
+    if running:
+        speed = run_speed
+    else:
+        speed = player_speed
     forward_x, forward_y = cam_direction[0], cam_direction[1]
     right_x, right_y = -forward_y, forward_x
     if key == b'w':
@@ -765,15 +760,17 @@ def keyboardListener(key, x, y):
             player_xyz[0] = nx
             player_xyz[1] = ny
 
-    if player_xyz[0] < boundary_min:
-        player_xyz[0] = boundary_min
-    elif player_xyz[0] > boundary_max:
-        player_xyz[0] = boundary_max
+    playable_min = boundary_min + wall_thickness
+    playable_max = boundary_max - wall_thickness
+    if player_xyz[0] < playable_min:
+        player_xyz[0] = playable_min
+    elif player_xyz[0] > playable_max:
+        player_xyz[0] = playable_max
 
-    if player_xyz[1] < boundary_min:
-        player_xyz[1] = boundary_min
-    elif player_xyz[1] > boundary_max:
-        player_xyz[1] = boundary_max
+    if player_xyz[1] < playable_min:
+        player_xyz[1] = playable_min
+    elif player_xyz[1] > playable_max:
+        player_xyz[1] = playable_max
 
 def special_keys(key, x, y):
     global camera_angle, cam_up_down, player_yaw
@@ -805,7 +802,6 @@ def idle():
     update_game(dt)
     glutPostRedisplay()
 
-
 def update_text():
     mode = "FPV" if view == "first_person" else "TPV"
     font = GLUT_BITMAP_HELVETICA_18
@@ -820,7 +816,6 @@ def update_text():
     if t_now < speed_boost:
         active.append(f"Speed Boost {int(speed_boost - t_now)}s")
     active_effects_line = ", ".join(active) if active else "None"
-
     glColor3f(0.0, 1.0, 1.0)
     draw_text(10, win_height - 25, f"Score: {score}", font)
     glColor3f(0.9, 0.95, 0.6)
@@ -834,14 +829,27 @@ def update_text():
     draw_text(win_width - lives_label_width - 10, win_height - 25, lives_label, font)
     glColor3f(0.8, 0.8, 1.0)
     draw_text(win_width - battery_label_width - 10, win_height - 50, battery_label, font)
+    if flash_on:
+        flash_label = "ON"
+    else:
+        flash_label = "OFF"
+    if running:
+        run_label = "ON"
+    else:
+        run_label = "OFF"
+    if shadows:
+        shadows_label = "ON"
+    else:
+        shadows_label = "OFF"
     mid_strings = [
         f"Mode: {mode}",
         f"Outfit (u): {outfit_name}",
-        f"Flash: {'ON' if flash_on else 'OFF'} | Run: {'ON' if running else 'OFF'} | Shadows: {'ON' if shadows else 'OFF'}"
+        f"Flash: {flash_label} | Run: {run_label} | Shadows: {shadows_label}"
     ]
     colors_mid = [(1.0, 1.0, 1.0), (0.6, 0.9, 1.0), (0.9, 0.7, 1.0)]
     y_offset = win_height - 25
-    for idx, text in enumerate(mid_strings):
+    for idx in range(len(mid_strings)):
+        text = mid_strings[idx]
         glColor3f(*colors_mid[idx])
         w = len(text) * char_w_hud
         draw_text(int(win_width/2 - w/2), y_offset - idx*25, text, font)
@@ -855,7 +863,6 @@ def update_text():
         draw_text(10, y,     "Controls:")
         draw_text(10, y-25,  "WASD move | Arrow keys rotate/tilt | P pause | L-click flashlight | R-click FPV toggle")
         draw_text(10, y-50,  "X run | C god | V vision | T shadows | R reset | H help")
-
 
 def flash_mode():
     setup_camera()
